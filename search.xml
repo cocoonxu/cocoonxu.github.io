@@ -4,6 +4,33 @@
   
     
     <entry>
+      <title>GPIO学习笔记</title>
+      <link href="/2025/07/18/GPIO%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/"/>
+      <url>/2025/07/18/GPIO%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/</url>
+      
+        <content type="html"><![CDATA[<h1 id="GPIO学习笔记"><a href="#GPIO学习笔记" class="headerlink" title="GPIO学习笔记"></a>GPIO学习笔记</h1><h3 id="感谢恩师-江协科技"><a href="#感谢恩师-江协科技" class="headerlink" title="感谢恩师 江协科技"></a>感谢恩师 <a href="https://space.bilibili.com/383400717/?spm_id_from=333.788.upinfo.detail.click">江协科技</a></h3><p>配套食用教材：<a href="https://www.bilibili.com/video/BV1th411z7sn?spm_id_from=333.788.videopod.episodes&amp;vd_source=9d556581d652d25760090bf00fa71258&amp;p=5">[3-1] GPIO输出_哔哩哔哩_bilibili</a></p><p>第二遍看终于看懂了。看来以后也可以按照第一遍预习，第二遍写学习笔记的方法来学习。</p><h2 id="GPIO外设"><a href="#GPIO外设" class="headerlink" title="GPIO外设"></a>GPIO外设</h2><p>GPIO的<strong>输出</strong>原理是控制端口的高低 电平$^①$，<strong>输入</strong>原理是接收端口的高低电平。</p><p>GPIO连接着APB2外设总线，上面有很多个GPIO模块，叫做GPIOA、GPIOB……GPIOA上的引脚叫做PA0、PA1……PA15。GPIOB同理。</p><p><img src="https://cdn.luogu.com.cn/upload/image_hosting/f22784ij.png" alt=""></p><h2 id="GPIO模块"><a href="#GPIO模块" class="headerlink" title="GPIO模块"></a>GPIO模块</h2><p>每个GPIO模块上都有<strong>寄存器</strong>和<strong>驱动器</strong>两个东西。寄存器是命令，那么驱动器就是执行命令的士兵。</p><p>其中寄存器可以通过APB2总线被STM32内核进行读写操作，这样就完成了读取与输出电平的操作。寄存器的每一位都对应一个引脚。输出寄存器写1，对应引脚电平即为高电平、反正则为低电平。输入寄存器同理。</p><p>由于STM32是32位的，所以寄存器也有32位。但引脚只有16个，所以寄存器只用到了低16位、高16位没有用。</p><h2 id="GPIO位"><a href="#GPIO位" class="headerlink" title="GPIO位"></a>GPIO位</h2><p>每一个GPIO模块都有16位。每一位包括寄存器、驱动器与IO引脚。</p><p><img src="https://cdn.luogu.com.cn/upload/image_hosting/jmi3re5h.png" alt=""></p><h3 id="保护二极管"><a href="#保护二极管" class="headerlink" title="保护二极管"></a>保护二极管</h3><p>先看IO引脚处的 VDD$^②$ 与 VSS$^③$ 。<strong>电是从电压高的地方往电压低的地方流的</strong>。因此当电压超过了3.3V的时候，就会流入上方的VDD，从而避免内部结构受损；当电压低于0V（相较于VSS而言）的时候，就会从VSS中流出，不会汲取内部的电流。而当电压在0V~3.3V之间时就不会有影响。起到一个<strong>保护内部</strong>作用。</p><h3 id="那个接了两个小开关的黑点（3种输入模式）"><a href="#那个接了两个小开关的黑点（3种输入模式）" class="headerlink" title="那个接了两个小开关的黑点（3种输入模式）"></a>那个接了两个小开关的黑点（3种输入模式）</h3><p>因为IO口不能一直得传来信号，所以当没有信号传来时，就需要一个<strong>默认值</strong>，这就是输入模式的目的——配置默认值。以下是三种输入模式：</p><ol><li><p>上拉输入：也就是默认<strong>高电平</strong>的输入模式。上面导通下面断开。</p></li><li><p>下拉输入：也就是默认<strong>低电平</strong>的输入模式。下面导通上面断开。</p></li><li><p>浮空输入：没有默认值，所以在使用浮空输入的时候需要保证IO引脚会源源不断地传输信号。上面下面都断开。</p></li></ol><h3 id="肖特基触发器"><a href="#肖特基触发器" class="headerlink" title="肖特基触发器"></a>肖特基触发器</h3><p>用于将高于某一阈值的电压转换为高电平，低于某一阈值的电压转化为低电平，也就是将模拟量转化为数字量。作用是<strong>避免信号波动</strong>而造成的误差。</p><h3 id="输出控制（3种输出模式）"><a href="#输出控制（3种输出模式）" class="headerlink" title="输出控制（3种输出模式）"></a>输出控制（3种输出模式）</h3><p>电信号控制 MOS管$^③$ 来决定将IO口接到VDD还是VSS。一下是三种输出模式：</p><ol><li><p>推挽输出：两个MOS管均有效。当输出数据寄存器为1时，上管导通，下管断开，连接至VDD输出高电平；反之，VSS输出低电平。</p></li><li><p>开漏输出：P-MOS管不起作用。当输出数据寄存器为1时，下管断开，此时处于 高阻态$^④$；当输出数据寄存器为0时，下管导通，输出低电平。作用：<strong>调整高电平电压，如将5V电压调整为3.3V</strong>，两种模式区别可见：<a href="https://www.bilibili.com/video/BV1D84y1c7GV/?spm_id_from=333.337.search-card.all.click&amp;vd_source=9d556581d652d25760090bf00fa71258">推挽 开漏 高阻 这都是谁想出来的词？？_哔哩哔哩_bilibili</a></p></li><li><p>关闭输出：引脚为输入模式时，输出就是关闭模式，即输出关闭。</p></li></ol><h3 id="八种GPIO模式"><a href="#八种GPIO模式" class="headerlink" title="八种GPIO模式"></a>八种GPIO模式</h3><ol><li><p>上拉输入</p></li><li><p>下拉输入</p></li><li><p>浮空输入</p></li><li><p>模拟输入：GPIO无效(不通过肖特基触发器)，直接接入 ADC$^⑤$。</p></li></ol><p>上述输入模式都只能输入<strong>无法</strong>输出。</p><ol><li><p>推挽输出</p></li><li><p>开漏输出</p></li><li><p>复用推挽输出：与推挽输出没啥区别。但不再由输出数据寄存器控制输出，而是由片上外设控制输出。并且<strong>还可以由片上外设输入</strong>。</p></li><li><p>复用开漏输出：同复用推挽输出。</p></li></ol><p>上述输出模式<strong>可以</strong>在边输出的情况下输入。</p><h2 id="专业知识附录"><a href="#专业知识附录" class="headerlink" title="专业知识附录"></a>专业知识附录</h2><ol><li><p>电平：在某个点上电压的高低状态。</p></li><li><p>VDD与VSS：芯片的<strong>正极供电端</strong>与芯片的<strong>负极供电端</strong>。</p></li><li><p>MOS管：一种电子开关。</p></li><li><p>高阻态：一种断开连接的“悬浮”状态，不对电路造成任何影响。</p></li><li><p>ADC：模数转换器，用于将模拟信号转化为数字信号。</p></li></ol>]]></content>
+      
+      
+      <categories>
+          
+          <category> 单片机 </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 学习笔记 </tag>
+            
+            <tag> STM32 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>位运算[算法竞赛进阶指南学习笔记]</title>
       <link href="/2025/07/17/%5B%E7%AE%97%E6%B3%95%E7%AB%9E%E8%B5%9B%E8%BF%9B%E9%98%B6%E6%8C%87%E5%8D%97%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%5D%20%E4%BD%8D%E8%BF%90%E7%AE%97/"/>
       <url>/2025/07/17/%5B%E7%AE%97%E6%B3%95%E7%AB%9E%E8%B5%9B%E8%BF%9B%E9%98%B6%E6%8C%87%E5%8D%97%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0%5D%20%E4%BD%8D%E8%BF%90%E7%AE%97/</url>
